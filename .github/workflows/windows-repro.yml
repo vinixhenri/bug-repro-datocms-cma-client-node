@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x]
+        node-version: [18.x, 20.x]
 
     steps:
       - name: Checkout code
@@ -120,7 +120,7 @@ jobs:
             # Check what's listening on port 3000
             Write-Host "=== Checking Port 3000 ==="
             Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Format-Table
-            Write-Host "=========================="
+            Write-Host "==========================="
 
             exit 1
           }
