@@ -58,11 +58,7 @@ jobs:
             # Log job output during health checks
             Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
 
-            try {
-              Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -ErrorAction SilentlyContinue
-            } catch {
-              Write-Host "Waiting for serverless... ($attempt/$maxAttempts)"
-            }
+            Invoke-WebRequest -Uri "http://localhost:3000/health"
             Start-Sleep -Seconds 1
           }
 
