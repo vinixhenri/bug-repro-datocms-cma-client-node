@@ -33,7 +33,18 @@ jobs:
       - name: Start serverless offline (Windows)
         shell: powershell
         run: |
-          serverless offline start --noAuth
+          $job = Start-Job -ScriptBlock {
+            Set-Location $using:PWD
+            $env:NODE_ENV = "test"
+            serverless offline start --noAuth 2>&1
+          }
+          $job.Id | Out-File -FilePath serverless.pid
+          Start-Sleep -Seconds 10
+
+          # Log initial output
+          Write-Host "=== Serverless Offline Startup Logs ==="
+          Receive-Job -Id $job.Id -Keep | ForEach-Object { Write-Host $_ }
+          Write-Host "======================================="
 
       - name: Wait for serverless to be ready
         shell: powershell
