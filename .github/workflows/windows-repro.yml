@@ -38,7 +38,8 @@ jobs:
       - name: Run repro
         run: |
           New-Item -ItemType Directory -Force -Path logs | Out-Null
-          $log = Join-Path $PWD "logs\sls-offline.log"
+          $outLog = Join-Path $PWD "logs\sls-offline-out.log"
+          $errLog = Join-Path $PWD "logs\sls-offline-err.log"
 
           $args = @(
             "serverless", "offline","start",
@@ -51,15 +52,15 @@ jobs:
           $p = Start-Process -FilePath "npx" `
             -ArgumentList $arguments `
             -NoNewWindow -PassThru `
-            -RedirectStandardOutput $log `
-            -RedirectStandardError $log
+            -RedirectStandardOutput $outLog `
+            -RedirectStandardError $errLog
 
-          # Poll for readiness (up to ~30s)
-          $max = 30
+          Start-Sleep -Seconds 10
+
+          $max = 10
           for ($i=0; $i -lt $max; $i++) {
             try {
               $resp = Invoke-WebRequest "http://127.0.0.1:3000" -UseBasicParsing -TimeoutSec 1
-              if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 500) { break }
             } catch { Start-Sleep -Seconds 1 }
           }
 
