@@ -1,0 +1,23 @@
+service: bug-repro-datocms-cma-client-node
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: us-east-1
+  memorySize: 258
+
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+
+functions:
+  api:
+    handler: index.handler
+    timeout: 30
+    events:
+      - httpApi: '*'
+
+custom:
+  serverless-offline:
+    httpPort: 3000

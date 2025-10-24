@@ -12,6 +12,8 @@ jobs:
       fail-fast: false
       matrix:
         node: [22]
+    env:
+      SLS_INTERACTIVE_SETUP_ENABLE: '0'
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +36,9 @@ jobs:
         run: yarn install
 
       - name: Run repro
-        run: npm test
+        run: |
+          npx serverless --versionnpx serverless offline start 2>&1 | tee sls-offline.log &
+          Start-Sleep -Seconds 5
 
       - name: Upload artifacts (env + logs)
         if: always()
@@ -44,4 +48,5 @@ jobs:
           path: |
             artifacts/**
             npm-debug.log*
+            sls-offline.log
             ./*.log

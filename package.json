@@ -1,16 +1,21 @@
 {
   "name": "bug-repro-datocms-cma-client-node",
   "private": true,
-  "type": "module",
   "engines": {
     "node": ">=18 <23"
   },
   "scripts": {
     "pretest": "node scripts/capture-env.js",
-    "test": "node index.js"
+    "test": "serverless offline start --reloadHandler"
   },
   "dependencies": {
-    "@datocms/cma-client-node": "^5.1.23"
+    "@datocms/cma-client-node": "^5.1.23",
+    "express": "^4.18.2",
+    "serverless-http": "^3.1.1"
+  },
+  "devDependencies": {
+    "serverless-dotenv-plugin": "^4.0.2",
+    "serverless-offline": "^13.3.0"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

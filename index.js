@@ -1,11 +1,16 @@
-import os from "node:os"
-import path from "node:path"
-import { buildClient } from '@datocms/cma-client-node'
+const serverless = require('serverless-http')
+const express = require('express')
+const { buildClient } = require('@datocms/cma-client-node')
 
-(async () => {
-	console.log("Node:", process.version)
-	console.log("Platform:", process.platform, os.release(), os.arch())
-	console.log("CWD:", process.cwd())
-	console.log("Path.sep:", path.sep)
-	console.log("EOL sample:", JSON.stringify(os.EOL))
-})()
+const app = express()
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+app.use((req, res, next) => {
+	return res.status(404).json({
+		error: 'Not Found',
+	})
+})
+
+module.exports.handler = serverless(app)
