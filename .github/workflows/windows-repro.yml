@@ -37,16 +37,49 @@ jobs:
 
       - name: Run repro
         run: |
-          npx serverless --versionnpx serverless offline start 2>&1 | tee sls-offline.log &
-          Start-Sleep -Seconds 5
+          New-Item -ItemType Directory -Force -Path logs | Out-Null
+          $log = Join-Path $PWD "logs\sls-offline.log"
+
+          $args = @(
+            "offline","start",
+            "--httpPort","3000",
+            "--lambdaPort","3001",
+            "--webSocketPort","3002",
+            "--stage","ci"
+          )
+
+          $p = Start-Process -FilePath "npx" `
+            -ArgumentList @("serverless") + $args `
+            -NoNewWindow -PassThru `
+            -RedirectStandardOutput $log `
+            -RedirectStandardError $log
+
+          # Poll for readiness (up to ~30s)
+          $max = 30
+          for ($i=0; $i -lt $max; $i++) {
+            try {
+              $resp = Invoke-WebRequest "http://127.0.0.1:3000" -UseBasicParsing -TimeoutSec 1
+              if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 500) { break }
+            } catch { Start-Sleep -Seconds 1 }
+          }
+
+          # If not ready, print last lines for debugging and fail
+          if ($i -ge $max) {
+            Write-Host "Server did not become ready; last 100 lines of log:"
+            Get-Content $log -Tail 100
+            Exit 1
+          }
+
+      - name: List files to upload
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "Workspace: $env:GITHUB_WORKSPACE"
+          Get-ChildItem -Recurse logs | Format-Table -AutoSize
 
       - name: Upload artifacts (env + logs)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-repro-${{ matrix.node }}
-          path: |
-            artifacts/**
-            npm-debug.log*
-            sls-offline.log
-            ./*.log
+          path: logs/**
