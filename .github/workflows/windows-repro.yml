@@ -35,21 +35,80 @@ jobs:
       - name: Clean install
         run: yarn install
 
-      - name: Run repro
+      - name: Start serverless offline (Windows)
+        shell: powershell
         run: |
-          npm i -g serverless
-          node index.js
+          $job = Start-Job -ScriptBlock {
+            Set-Location $using:PWD
+            $env:NODE_ENV = "test"
+            serverless offline start --noAuth
+          }
+          $job.Id | Out-File -FilePath serverless.pid
+          Start-Sleep -Seconds 10
 
-      - name: List files to upload
-        if: always()
-        shell: pwsh
+      - name: Wait for serverless to be ready
+        shell: powershell
         run: |
-          Write-Host "Workspace: $env:GITHUB_WORKSPACE"
-          Get-ChildItem -Recurse logs | Format-Table -AutoSize
+                $maxAttempts = 30
+                $attempt = 0
+                $ready = $false
 
-      - name: Upload artifacts (env + logs)
+                while ($attempt -lt $maxAttempts -and -not $ready) {
+                  try {
+                    $response = Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -ErrorAction SilentlyContinue
+                    if ($response.StatusCode -eq 200) {
+                      Write-Host "Serverless is ready"
+                      $ready = $true
+                    }
+                  } catch {
+                    $attempt++
+                    Write-Host "Waiting for serverless... ($attempt/$maxAttempts)"
+                    Start-Sleep -Seconds 2
+                  }
+                }
+
+                if (-not $ready) {
+                  Write-Host "Serverless failed to start"
+                  exit 1
+                }
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          API_URL: http://localhost:3000
+          NODE_ENV: test
+
+      - name: Stop serverless offline
         if: always()
+        shell: powershell
+        run: |
+                if (Test-Path serverless.pid) {
+                  $jobId = Get-Content serverless.pid
+                  Stop-Job -Id $jobId -ErrorAction SilentlyContinue
+                  Remove-Job -Id $jobId -ErrorAction SilentlyContinue
+                  Remove-Item serverless.pid
+                }
+                # Kill any remaining Node processes on port 3000
+                $processes = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+                if ($processes) {
+                  $processes | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+                }
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: matrix.node-version == '20.x'
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          continue-on-error: true
+
+      - name: Archive test results
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-repro-${{ matrix.node }}
-          path: logs/**
+          name: test-results-node-${{ matrix.node-version }}
+          path: |
+            test-results/
+            logs/
+          retention-days: 7

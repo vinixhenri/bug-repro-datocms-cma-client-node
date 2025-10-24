@@ -5,8 +5,13 @@
     "node": ">=18 <23"
   },
   "scripts": {
-    "pretest": "node scripts/capture-env.js",
-    "test": "serverless offline start"
+  	"test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:integration": "jest --config jest.integration.config.js",
+    "lint": "eslint . --ext .js,.ts",
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "offline": "serverless offline start",
+    "deploy": "serverless deploy"
   },
   "dependencies": {
     "@datocms/cma-client-node": "^5.1.23",
