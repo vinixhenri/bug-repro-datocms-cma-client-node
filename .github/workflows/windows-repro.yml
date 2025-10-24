@@ -31,7 +31,7 @@ jobs:
           echo "Path sep: [\\]"
 
       - name: Clean install
-        run: npm ci
+        run: yarn install
 
       - name: Run repro
         run: npm test
