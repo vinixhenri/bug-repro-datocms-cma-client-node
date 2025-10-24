@@ -1,0 +1,13 @@
+{
+  "name": "bug-repro-datocms-cma-client-node",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18 <23" },
+  "scripts": {
+    "pretest": "node scripts/capture-env.js",
+    "test": "node index.js"
+  },
+  "dependencies": {
+  	"@datocms/cma-client-node": "^5.1.23"
+  }
+}
