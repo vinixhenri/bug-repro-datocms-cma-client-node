@@ -46,9 +46,6 @@ jobs:
           Receive-Job -Id $job.Id -Keep | ForEach-Object { Write-Host $_ }
           Write-Host "======================================="
 
-      - name: Wait for serverless to be ready
-        shell: powershell
-        run: |
           $jobId = Get-Content serverless.pid
           $maxAttempts = 30
           $attempt = 0
@@ -58,7 +55,11 @@ jobs:
             # Log job output during health checks
             Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
 
-            Invoke-WebRequest -Uri "http://localhost:3000/health"
+            try{
+              Invoke-WebRequest -Uri "http://localhost:3000/health" -ErrorAction Stop
+            } catch {
+              Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+            }
             Start-Sleep -Seconds 1
           }
 
