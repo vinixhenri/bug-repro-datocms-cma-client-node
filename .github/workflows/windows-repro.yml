@@ -49,7 +49,10 @@ jobs:
             "--stage","ci"
           )
 
-          $p = Start-Process -FilePath "npx" `
+          $npxCmd = "${env:APPDATA}\npm\npx.cmd"
+          if (!(Test-Path $npxCmd)) { $npxCmd = "npx.cmd" }
+
+          $p = Start-Process -FilePath $npxCmd `
             -ArgumentList $arguments `
             -NoNewWindow -PassThru `
             -RedirectStandardOutput $outLog `
