@@ -22,13 +22,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
 
       - name: Install Serverless Framework
         run: npm install -g serverless
+
+      - name: Create logs directory
+        shell: powershell
+        run: New-Item -ItemType Directory -Force -Path logs
 
       - name: Start serverless offline (Windows)
         shell: powershell
@@ -36,54 +40,112 @@ jobs:
           $job = Start-Job -ScriptBlock {
             Set-Location $using:PWD
             $env:NODE_ENV = "test"
-            serverless offline start --noAuth 2>&1
+            serverless offline start --noAuth 2>&1 | Tee-Object -FilePath "logs/serverless-output.log"
           }
           $job.Id | Out-File -FilePath serverless.pid
-          Start-Sleep -Seconds 10
+          Write-Host "Started serverless offline with Job ID: $($job.Id)"
+          Start-Sleep -Seconds 15
 
           # Log initial output
           Write-Host "=== Serverless Offline Startup Logs ==="
-          Receive-Job -Id $job.Id -Keep | ForEach-Object { Write-Host $_ }
+          Receive-Job -Id $job.Id -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
           Write-Host "======================================="
 
-      - name: Wait for serverless to be ready
+      - name: Continuously log serverless output
         shell: powershell
         run: |
           $jobId = Get-Content serverless.pid
-          $maxAttempts = 30
+          $maxAttempts = 60
           $attempt = 0
           $ready = $false
 
-          while ($attempt -lt $maxAttempts -and -not $ready) {
-            # Log job output during health checks
-            Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+          Write-Host "Monitoring serverless process..."
 
+          while ($attempt -lt $maxAttempts -and -not $ready) {
+            # Always log job output
+            Write-Host "=== Serverless Output (Attempt $($attempt + 1)/$maxAttempts) ==="
+            $output = Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue
+            if ($output) {
+              $output | ForEach-Object { Write-Host $_ }
+            } else {
+              Write-Host "(No new output)"
+            }
+            Write-Host "============================================"
+
+            # Check job state
+            $jobState = (Get-Job -Id $jobId).State
+            Write-Host "Job State: $jobState"
+
+            if ($jobState -eq "Failed" -or $jobState -eq "Stopped") {
+              Write-Host "ERROR: Serverless job has $jobState"
+              Write-Host "=== Full Job Output ==="
+              Receive-Job -Id $jobId -ErrorAction SilentlyContinue
+              Write-Host "======================="
+              exit 1
+            }
+
+            # Try health check
             try {
-              $response = Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -ErrorAction SilentlyContinue
+              $response = Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
               if ($response.StatusCode -eq 200) {
-                Write-Host "Serverless is ready"
+                Write-Host "✓ Serverless is ready and responding!"
                 $ready = $true
               }
             } catch {
+              Write-Host "Health check failed: $($_.Exception.Message)"
+            }
+
+            if (-not $ready) {
               $attempt++
-              Write-Host "Waiting for serverless... ($attempt/$maxAttempts)"
-              Start-Sleep -Seconds 2
+              Start-Sleep -Seconds 3
             }
           }
 
+          # Final log dump
+          Write-Host ""
+          Write-Host "=== Final Complete Job Output ==="
+          Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+          Write-Host "=================================="
+
           if (-not $ready) {
-            Write-Host "Serverless failed to start"
-            Write-Host "=== Final Job Output ==="
-            Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue
-            Write-Host "========================"
+            Write-Host "ERROR: Serverless failed to become ready after $maxAttempts attempts"
+
+            # Check if log file exists and dump it
+            if (Test-Path "logs/serverless-output.log") {
+              Write-Host "=== Log File Contents ==="
+              Get-Content "logs/serverless-output.log" | ForEach-Object { Write-Host $_ }
+              Write-Host "========================="
+            }
+
+            # Check what's listening on port 3000
+            Write-Host "=== Checking Port 3000 ==="
+            Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Format-Table
+            Write-Host "=========================="
+
             exit 1
           }
 
       - name: Run integration tests
-        run: npm run test:integration
+        run: yarn test:integration
         env:
           API_URL: http://localhost:3000
           NODE_ENV: test
+
+      - name: Capture final serverless logs
+        if: always()
+        shell: powershell
+        run: |
+          Write-Host "=== Capturing Final Serverless Logs ==="
+          if (Test-Path serverless.pid) {
+            $jobId = Get-Content serverless.pid
+            Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+          }
+
+          if (Test-Path "logs/serverless-output.log") {
+            Write-Host "=== Complete Log File ==="
+            Get-Content "logs/serverless-output.log"
+            Write-Host "========================="
+          }
 
       - name: Stop serverless offline
         if: always()
@@ -92,36 +154,24 @@ jobs:
           if (Test-Path serverless.pid) {
             $jobId = Get-Content serverless.pid
 
-            # Capture final logs before stopping
-            Write-Host "=== Final Serverless Offline Logs ==="
-            Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
-            Write-Host "======================================"
-
+            Write-Host "Stopping serverless job $jobId..."
             Stop-Job -Id $jobId -ErrorAction SilentlyContinue
             Remove-Job -Id $jobId -ErrorAction SilentlyContinue
             Remove-Item serverless.pid
           }
+
           # Kill any remaining Node processes on port 3000
           $processes = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
           if ($processes) {
+            Write-Host "Killing processes on port 3000: $processes"
             $processes | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
           }
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        if: matrix.node-version == '20.x'
-        with:
-          files: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-        continue-on-error: true
-
-      - name: Archive test results
-        if: failure()
+      - name: Upload serverless logs
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: test-results-node-${{ matrix.node-version }}
-          path: |
-            test-results/
-            logs/
+          name: serverless-logs-node-${{ matrix.node-version }}
+          path: logs/
+          if-no-files-found: warn
           retention-days: 7
