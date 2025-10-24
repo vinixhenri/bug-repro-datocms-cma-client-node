@@ -49,6 +49,7 @@ jobs:
           # Log initial output
           Write-Host "=== Serverless Offline Startup Logs ==="
           Receive-Job -Id $job.Id -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+          Write-Host "======================================="
 
       - name: Continuously log serverless output
         shell: powershell
@@ -60,15 +61,16 @@ jobs:
 
           Write-Host "Monitoring serverless process..."
 
-          while($attempt -lt $maxAttempts -and -not $ready){
+          while ($attempt -lt $maxAttempts -and -not $ready) {
             # Always log job output
             Write-Host "=== Serverless Output (Attempt $($attempt + 1)/$maxAttempts) ==="
             $output = Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue
-            if($output){
+            if ($output) {
               $output | ForEach-Object { Write-Host $_ }
             } else {
               Write-Host "(No new output)"
             }
+            Write-Host "============================================"
 
             # Check job state
             $jobState = (Get-Job -Id $jobId).State
@@ -118,7 +120,7 @@ jobs:
             # Check what's listening on port 3000
             Write-Host "=== Checking Port 3000 ==="
             Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Format-Table
-            Write-Host "==========================="
+            Write-Host "=========================="
 
             exit 1
           }
