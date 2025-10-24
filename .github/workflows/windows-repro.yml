@@ -41,7 +41,7 @@ jobs:
           $log = Join-Path $PWD "logs\sls-offline.log"
 
           $args = @(
-            "offline","start",
+            "serverless", "offline","start",
             "--httpPort","3000",
             "--lambdaPort","3001",
             "--webSocketPort","3002",
@@ -49,7 +49,7 @@ jobs:
           )
 
           $p = Start-Process -FilePath "npx" `
-            -ArgumentList @("serverless") + $args `
+            -ArgumentList $arguments `
             -NoNewWindow -PassThru `
             -RedirectStandardOutput $log `
             -RedirectStandardError $log
