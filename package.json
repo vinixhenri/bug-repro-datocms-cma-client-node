@@ -2,12 +2,15 @@
   "name": "bug-repro-datocms-cma-client-node",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=18 <23" },
+  "engines": {
+    "node": ">=18 <23"
+  },
   "scripts": {
     "pretest": "node scripts/capture-env.js",
     "test": "node index.js"
   },
   "dependencies": {
-  	"@datocms/cma-client-node": "^5.1.23"
-  }
+    "@datocms/cma-client-node": "^5.1.23"
+  },
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }
