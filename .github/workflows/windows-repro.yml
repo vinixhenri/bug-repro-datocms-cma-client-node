@@ -37,12 +37,13 @@ jobs:
 
       - name: Run repro
         run: |
+          npm i -g serverless
           New-Item -ItemType Directory -Force -Path logs | Out-Null
           $outLog = Join-Path $PWD "logs\sls-offline-out.log"
           $errLog = Join-Path $PWD "logs\sls-offline-err.log"
 
           $cmdArgs = @(
-            "/c","npx","serverless","offline","start",
+            "/c","serverless","offline","start",
             "--httpPort",$env:HTTP_PORT,
             "--lambdaPort",$env:LAMBDA_PORT,
             "--webSocketPort",$env:WS_PORT,
