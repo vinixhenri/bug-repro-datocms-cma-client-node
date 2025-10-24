@@ -59,16 +59,11 @@ jobs:
             Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
 
             try {
-              $response = Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -ErrorAction SilentlyContinue
-              if ($response.StatusCode -eq 200) {
-                Write-Host "Serverless is ready"
-                $ready = $true
-              }
+              Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -ErrorAction SilentlyContinue
             } catch {
-              $attempt++
               Write-Host "Waiting for serverless... ($attempt/$maxAttempts)"
-              Start-Sleep -Seconds 2
             }
+            Start-Sleep -Seconds 1
           }
 
           if (-not $ready) {
