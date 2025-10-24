@@ -38,42 +38,7 @@ jobs:
       - name: Run repro
         run: |
           npm i -g serverless
-          New-Item -ItemType Directory -Force -Path logs | Out-Null
-          $outLog = Join-Path $PWD "logs\sls-offline-out.log"
-          $errLog = Join-Path $PWD "logs\sls-offline-err.log"
-
-          $cmdArgs = @(
-            "/c","serverless","offline","start",
-            "--httpPort",$env:HTTP_PORT,
-            "--lambdaPort",$env:LAMBDA_PORT,
-            "--webSocketPort",$env:WS_PORT,
-            "--stage","ci"
-          )
-
-          Write-Host "Launching via cmd.exe..."
-          $proc = Start-Process -FilePath "cmd.exe" `
-            -ArgumentList $cmdArgs `
-            -NoNewWindow -PassThru `
-            -RedirectStandardOutput $outLog `
-            -RedirectStandardError  $errLog
-
-          Start-Sleep -Seconds 10
-
-          $max = 10
-          for ($i=0; $i -lt $max; $i++) {
-            try {
-              Invoke-WebRequest "http://127.0.0.1:3000" -UseBasicParsing -TimeoutSec 1
-            } catch { Start-Sleep -Seconds 1 }
-          }
-
-          Start-Sleep -Seconds 10
-
-          # If not ready, print last lines for debugging and fail
-          if ($i -ge $max) {
-            Write-Host "Server did not become ready; last 100 lines of log:"
-            Get-Content $outLog -Tail 100
-            Get-Content $errLog -Tail 100
-          }
+          node index.js
 
       - name: List files to upload
         if: always()

@@ -13,4 +13,17 @@ app.use((req, res, next) => {
 	})
 })
 
+if (require.main === module) {
+  const port = process.env.PORT || 3000
+  app.listen(port, () => console.log(`Local server running on http://localhost:${port}`))
+  setInterval(() => {
+  	console.log('requesting')
+  	fetch(`http://localhost:${port}`).then(r => console.log(r)).catch(e => console.error(e))
+  }, 1000)
+  setTimeout(() => {
+    console.log('Shutting down after 10 seconds...')
+    process.exit(0)
+  }, 10000)
+}
+
 module.exports.handler = serverless(app)

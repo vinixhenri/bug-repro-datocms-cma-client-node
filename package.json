@@ -6,7 +6,7 @@
   },
   "scripts": {
     "pretest": "node scripts/capture-env.js",
-    "test": "serverless offline start --reloadHandler"
+    "test": "serverless offline start"
   },
   "dependencies": {
     "@datocms/cma-client-node": "^5.1.23",
