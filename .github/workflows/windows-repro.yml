@@ -70,7 +70,8 @@ jobs:
           # If not ready, print last lines for debugging and fail
           if ($i -ge $max) {
             Write-Host "Server did not become ready; last 100 lines of log:"
-            Get-Content $log -Tail 100
+            Get-Content $outLog -Tail 100
+            Get-Content $errLog -Tail 100
             Exit 1
           }
 
