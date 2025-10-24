@@ -1,39 +1,43 @@
-name: Windows Repro
+name: Test Serverless App
 
 on:
   push:
+    branches: [main, develop]
   pull_request:
-  workflow_dispatch:
+    branches: [main, develop]
 
 jobs:
-  repro:
+  test:
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [22]
-    env:
-      SLS_INTERACTIVE_SETUP_ENABLE: '0'
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Use Node ${{ matrix.node }}
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
-          cache: "npm"
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-      - name: Print diagnostics
-        shell: pwsh
-        run: |
-          $PSVersionTable
-          node -v
-          npm -v
-          git --version
-          echo "Path sep: [\\]"
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Clean install
-        run: yarn install
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Run unit tests
+        run: npm test
+        env:
+          NODE_ENV: test
+
+      - name: Install Serverless Framework
+        run: npm install -g serverless
 
       - name: Start serverless offline (Windows)
         shell: powershell
@@ -41,36 +45,48 @@ jobs:
           $job = Start-Job -ScriptBlock {
             Set-Location $using:PWD
             $env:NODE_ENV = "test"
-            serverless offline start --noAuth
+            serverless offline start --noAuth 2>&1
           }
           $job.Id | Out-File -FilePath serverless.pid
           Start-Sleep -Seconds 10
 
+          # Log initial output
+          Write-Host "=== Serverless Offline Startup Logs ==="
+          Receive-Job -Id $job.Id -Keep | ForEach-Object { Write-Host $_ }
+          Write-Host "======================================="
+
       - name: Wait for serverless to be ready
         shell: powershell
         run: |
-                $maxAttempts = 30
-                $attempt = 0
-                $ready = $false
+          $jobId = Get-Content serverless.pid
+          $maxAttempts = 30
+          $attempt = 0
+          $ready = $false
 
-                while ($attempt -lt $maxAttempts -and -not $ready) {
-                  try {
-                    $response = Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -ErrorAction SilentlyContinue
-                    if ($response.StatusCode -eq 200) {
-                      Write-Host "Serverless is ready"
-                      $ready = $true
-                    }
-                  } catch {
-                    $attempt++
-                    Write-Host "Waiting for serverless... ($attempt/$maxAttempts)"
-                    Start-Sleep -Seconds 2
-                  }
-                }
+          while ($attempt -lt $maxAttempts -and -not $ready) {
+            # Log job output during health checks
+            Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
 
-                if (-not $ready) {
-                  Write-Host "Serverless failed to start"
-                  exit 1
-                }
+            try {
+              $response = Invoke-WebRequest -Uri "http://localhost:3000/health" -UseBasicParsing -ErrorAction SilentlyContinue
+              if ($response.StatusCode -eq 200) {
+                Write-Host "Serverless is ready"
+                $ready = $true
+              }
+            } catch {
+              $attempt++
+              Write-Host "Waiting for serverless... ($attempt/$maxAttempts)"
+              Start-Sleep -Seconds 2
+            }
+          }
+
+          if (-not $ready) {
+            Write-Host "Serverless failed to start"
+            Write-Host "=== Final Job Output ==="
+            Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue
+            Write-Host "========================"
+            exit 1
+          }
 
       - name: Run integration tests
         run: npm run test:integration
@@ -82,17 +98,23 @@ jobs:
         if: always()
         shell: powershell
         run: |
-                if (Test-Path serverless.pid) {
-                  $jobId = Get-Content serverless.pid
-                  Stop-Job -Id $jobId -ErrorAction SilentlyContinue
-                  Remove-Job -Id $jobId -ErrorAction SilentlyContinue
-                  Remove-Item serverless.pid
-                }
-                # Kill any remaining Node processes on port 3000
-                $processes = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
-                if ($processes) {
-                  $processes | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
-                }
+          if (Test-Path serverless.pid) {
+            $jobId = Get-Content serverless.pid
+
+            # Capture final logs before stopping
+            Write-Host "=== Final Serverless Offline Logs ==="
+            Receive-Job -Id $jobId -Keep -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+            Write-Host "======================================"
+
+            Stop-Job -Id $jobId -ErrorAction SilentlyContinue
+            Remove-Job -Id $jobId -ErrorAction SilentlyContinue
+            Remove-Item serverless.pid
+          }
+          # Kill any remaining Node processes on port 3000
+          $processes = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+          if ($processes) {
+            $processes | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+          }
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -101,7 +123,7 @@ jobs:
           files: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
-          continue-on-error: true
+        continue-on-error: true
 
       - name: Archive test results
         if: failure()

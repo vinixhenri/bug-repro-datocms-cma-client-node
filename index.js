@@ -7,6 +7,10 @@ const app = express()
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+app.use('/health', (req, res, next) => {
+	return res.status(200)
+})
+
 app.use((req, res, next) => {
 	return res.status(404).json({
 		error: 'Not Found',
