@@ -41,22 +41,20 @@ jobs:
           $outLog = Join-Path $PWD "logs\sls-offline-out.log"
           $errLog = Join-Path $PWD "logs\sls-offline-err.log"
 
-          $args = @(
-            "serverless", "offline","start",
-            "--httpPort","3000",
-            "--lambdaPort","3001",
-            "--webSocketPort","3002",
+          $cmdArgs = @(
+            "/c","npx","serverless","offline","start",
+            "--httpPort",$env:HTTP_PORT,
+            "--lambdaPort",$env:LAMBDA_PORT,
+            "--webSocketPort",$env:WS_PORT,
             "--stage","ci"
           )
 
-          $npxCmd = "${env:APPDATA}\npm\npx.cmd"
-          if (!(Test-Path $npxCmd)) { $npxCmd = "npx.cmd" }
-
-          $p = Start-Process -FilePath $npxCmd `
-            -ArgumentList $arguments `
+          Write-Host "Launching via cmd.exe..."
+          $proc = Start-Process -FilePath "cmd.exe" `
+            -ArgumentList $cmdArgs `
             -NoNewWindow -PassThru `
             -RedirectStandardOutput $outLog `
-            -RedirectStandardError $errLog
+            -RedirectStandardError  $errLog
 
           Start-Sleep -Seconds 10
 
