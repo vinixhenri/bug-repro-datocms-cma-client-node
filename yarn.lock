@@ -436,20 +436,10 @@
   resolved "https://registry.yarnpkg.com/@aws/lambda-invoke-store/-/lambda-invoke-store-0.0.1.tgz#92d792a7dda250dfcb902e13228f37a81be57c8f"
   integrity sha512-ORHRQ2tmvnBXc8t/X9Z8IcSbBA4xTLKuN873FopzklHMeqBst7YG0d+AX97inkvDX+NChYtSr+qGfcqGFaI8Zw==
 
-"@datocms/cma-client-node@^5.1.23":
-  version "5.1.23"
-  resolved "https://registry.yarnpkg.com/@datocms/cma-client-node/-/cma-client-node-5.1.23.tgz#d5b693cb388ca27428858d449906efaf17126cb6"
-  integrity sha512-DkYbaS4GbWcg2yaCWf65rUQgfrHsUwVx13s5vtvCuw2LZTwYNnfA2jLpGNSmVLerRQ4MnNnEDSmT+34XBSelew==
-  dependencies:
-    "@datocms/cma-client" "^5.1.23"
-    "@datocms/rest-client-utils" "^5.1.13"
-    mime-types "^2.1.35"
-    tmp-promise "^3.0.3"
-
-"@datocms/cma-client@^5.1.23":
-  version "5.1.23"
-  resolved "https://registry.yarnpkg.com/@datocms/cma-client/-/cma-client-5.1.23.tgz#935da22f09a8d353616d52a2ceda90e19f300044"
-  integrity sha512-lMXTUbmeYHkptUMY/jpWlv4DsI/tyny1Scw6zcYeJncKsrDZpOmVCVzq5OzgRe8Wopu/4aZ6DqqGLNzYJLba2w==
+"@datocms/cma-client@^5.1.24":
+  version "5.1.24"
+  resolved "https://registry.yarnpkg.com/@datocms/cma-client/-/cma-client-5.1.24.tgz#8c446b58eb38779348a206ce194745b33f77a061"
+  integrity sha512-qs6qvtUAmDYjeDtbZmoxP2MpZ/IP3y/BP6c6GIZDhbf2+56PzHSo02DbRxFpyJDsfLr/AQlwEn3/VEa1dLkIOA==
   dependencies:
     "@datocms/rest-client-utils" "^5.1.13"
     datocms-structured-text-utils "^5.1.4"
@@ -1828,7 +1818,7 @@ mime-db@^1.52.0:
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.54.0.tgz#cddb3ee4f9c64530dff640236661d42cb6a314f5"
   integrity sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ==
 
-mime-types@^2.1.35, mime-types@~2.1.24, mime-types@~2.1.34:
+mime-types@~2.1.24, mime-types@~2.1.34:
   version "2.1.35"
   resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.35.tgz#381a871b62a734450660ae3deee44813f70d959a"
   integrity sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==
@@ -2194,18 +2184,6 @@ supports-color@^7.1.0:
   integrity sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==
   dependencies:
     has-flag "^4.0.0"
-
-tmp-promise@^3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/tmp-promise/-/tmp-promise-3.0.3.tgz#60a1a1cc98c988674fcbfd23b6e3367bdeac4ce7"
-  integrity sha512-RwM7MoPojPxsOBYnyd2hy0bxtIlVrihNs9pj5SUvY8Zz1sQcQG2tG1hSr8PDxfgEB8RNKDhqbIlroIarSNDNsQ==
-  dependencies:
-    tmp "^0.2.0"
-
-tmp@^0.2.0:
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/tmp/-/tmp-0.2.5.tgz#b06bcd23f0f3c8357b426891726d16015abfd8f8"
-  integrity sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==
 
 toidentifier@1.0.1:
   version "1.0.1"

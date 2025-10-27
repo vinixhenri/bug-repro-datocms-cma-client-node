@@ -1,6 +1,6 @@
 const serverless = require('serverless-http')
 const express = require('express')
-const { buildClient } = require('@datocms/cma-client-node')
+const { buildClient } = require('@datocms/cma-client')
 
 const app = express()
 
